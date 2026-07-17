@@ -23,7 +23,7 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.025,
 };
 
-export default function MapScreen() {
+export default function MapScreen({ navigation }) {
   const { caches, userFinds } = useGeoQuest();
 
   const mapReference = useRef(null);
@@ -92,6 +92,7 @@ export default function MapScreen() {
         );
     } catch (error) {
       console.error(error);
+
       setLocationError(
         "GeoQuest could not retrieve your current location."
       );
@@ -200,6 +201,12 @@ export default function MapScreen() {
     );
   }
 
+  function openCacheDetails(cacheID) {
+    navigation.navigate("CacheDetails", {
+      cacheID,
+    });
+  }
+
   return (
     <View style={styles.screen}>
       <MapView
@@ -225,7 +232,11 @@ export default function MapScreen() {
               }}
               pinColor={found ? "#236B4E" : "#F28C28"}
             >
-              <Callout>
+              <Callout
+                onPress={() =>
+                  openCacheDetails(cache.CacheID)
+                }
+              >
                 <View style={styles.callout}>
                   <Text style={styles.calloutTitle}>
                     {cache.CacheName}
@@ -240,7 +251,13 @@ export default function MapScreen() {
                   </Text>
 
                   <Text style={styles.calloutStatus}>
-                    {found ? "Already discovered" : "Not yet discovered"}
+                    {found
+                      ? "Already discovered"
+                      : "Not yet discovered"}
+                  </Text>
+
+                  <Text style={styles.calloutAction}>
+                    Tap to view cache details
                   </Text>
                 </View>
               </Callout>
@@ -256,7 +273,11 @@ export default function MapScreen() {
           accessibilityRole="button"
           accessibilityLabel="Show all caches"
         >
-          <Ionicons name="map" size={22} color="#236B4E" />
+          <Ionicons
+            name="map"
+            size={22}
+            color="#236B4E"
+          />
         </Pressable>
 
         <Pressable
@@ -279,19 +300,34 @@ export default function MapScreen() {
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.availableDot]} />
+          <View
+            style={[
+              styles.legendDot,
+              styles.availableDot,
+            ]}
+          />
+
           <Text style={styles.legendText}>Available</Text>
         </View>
 
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.foundDot]} />
+          <View
+            style={[
+              styles.legendDot,
+              styles.foundDot,
+            ]}
+          />
+
           <Text style={styles.legendText}>Found</Text>
         </View>
       </View>
 
       {locationLoading && (
         <View style={styles.statusBanner}>
-          <ActivityIndicator size="small" color="#236B4E" />
+          <ActivityIndicator
+            size="small"
+            color="#236B4E"
+          />
 
           <Text style={styles.statusText}>
             Finding your location...
@@ -301,14 +337,18 @@ export default function MapScreen() {
 
       {!locationLoading && locationError !== "" && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{locationError}</Text>
+          <Text style={styles.errorText}>
+            {locationError}
+          </Text>
 
           <Pressable
             style={styles.retryButton}
             onPress={startLocationTracking}
             accessibilityRole="button"
           >
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>
+              Try again
+            </Text>
           </Pressable>
         </View>
       )}
@@ -452,5 +492,11 @@ const styles = StyleSheet.create({
     color: "#667085",
     fontSize: 13,
     marginTop: 4,
+  },
+  calloutAction: {
+    color: "#236B4E",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginTop: 8,
   },
 });
