@@ -11,6 +11,7 @@ import {
   getAllData,
   initialiseStorage,
   saveFind,
+  saveTrainingCache,
 } from "../services/storageService";
 
 const GeoQuestContext = createContext(undefined);
@@ -35,12 +36,16 @@ export function GeoQuestProvider({ children }) {
       setError("");
 
       await initialiseStorage();
+
       const storedData = await getAllData();
 
       setData(storedData);
     } catch (storageError) {
       console.error(storageError);
-      setError("GeoQuest could not load the saved application data.");
+
+      setError(
+        "GeoQuest could not load the saved application data."
+      );
     } finally {
       setLoading(false);
     }
@@ -57,7 +62,8 @@ export function GeoQuestProvider({ children }) {
 
     return (
       data.players.find(
-        (player) => player.PlayerUserID === data.currentUser.UserID
+        (player) =>
+          player.PlayerUserID === data.currentUser.UserID
       ) ?? null
     );
   }, [data.currentUser, data.players]);
@@ -68,7 +74,8 @@ export function GeoQuestProvider({ children }) {
     }
 
     return data.finds.filter(
-      (find) => find.FindPlayerID === currentPlayer.PlayerID
+      (find) =>
+        find.FindPlayerID === currentPlayer.PlayerID
     );
   }, [currentPlayer, data.finds]);
 
@@ -83,10 +90,13 @@ export function GeoQuestProvider({ children }) {
   }, [data.caches, userFinds]);
 
   const availableCaches = useMemo(() => {
-    const foundCacheIDs = userFinds.map((find) => find.FindCacheID);
+    const foundCacheIDs = userFinds.map(
+      (find) => find.FindCacheID
+    );
 
     return data.caches.filter(
-      (cache) => !foundCacheIDs.includes(cache.CacheID)
+      (cache) =>
+        !foundCacheIDs.includes(cache.CacheID)
     );
   }, [data.caches, userFinds]);
 
@@ -104,6 +114,20 @@ export function GeoQuestProvider({ children }) {
     await refreshData();
   }
 
+  async function createTrainingCache(
+    latitude,
+    longitude
+  ) {
+    const trainingCache = await saveTrainingCache(
+      latitude,
+      longitude
+    );
+
+    await refreshData();
+
+    return trainingCache;
+  }
+
   const contextValue = {
     ...data,
     currentPlayer,
@@ -114,6 +138,7 @@ export function GeoQuestProvider({ children }) {
     error,
     refreshData,
     recordFind,
+    createTrainingCache,
   };
 
   return (
@@ -127,7 +152,9 @@ export function useGeoQuest() {
   const context = useContext(GeoQuestContext);
 
   if (context === undefined) {
-    throw new Error("useGeoQuest must be used inside GeoQuestProvider.");
+    throw new Error(
+      "useGeoQuest must be used inside GeoQuestProvider."
+    );
   }
 
   return context;

@@ -10,6 +10,7 @@ import {
 } from "../data/seedData";
 
 const STORAGE_VERSION = "1";
+const TRAINING_CACHE_LATITUDE_OFFSET = 0.00015;
 
 const STORAGE_KEYS = {
   version: "@geoquest/version",
@@ -37,7 +38,9 @@ async function writeJSON(key, value) {
 }
 
 export async function initialiseStorage() {
-  const existingVersion = await AsyncStorage.getItem(STORAGE_KEYS.version);
+  const existingVersion = await AsyncStorage.getItem(
+    STORAGE_KEYS.version
+  );
 
   if (existingVersion === STORAGE_VERSION) {
     return;
@@ -81,10 +84,17 @@ export async function getFinds() {
 
 export async function getCurrentUser() {
   const users = await getUsers();
-  const storedUserID = await AsyncStorage.getItem(STORAGE_KEYS.currentUserID);
+
+  const storedUserID = await AsyncStorage.getItem(
+    STORAGE_KEYS.currentUserID
+  );
+
   const currentUserID = Number(storedUserID ?? 1);
 
-  return users.find((user) => user.UserID === currentUserID) ?? users[0];
+  return (
+    users.find((user) => user.UserID === currentUserID) ??
+    users[0]
+  );
 }
 
 export async function getAllData() {
@@ -132,7 +142,8 @@ export async function saveFind(findDetails) {
 
   const nextFindID =
     finds.reduce(
-      (largestID, find) => Math.max(largestID, Number(find.FindID)),
+      (largestID, find) =>
+        Math.max(largestID, Number(find.FindID)),
       0
     ) + 1;
 
@@ -149,4 +160,58 @@ export async function saveFind(findDetails) {
   await writeJSON(STORAGE_KEYS.finds, updatedFinds);
 
   return newFind;
+}
+
+export async function saveTrainingCache(
+  currentLatitude,
+  currentLongitude
+) {
+  if (
+    !Number.isFinite(currentLatitude) ||
+    !Number.isFinite(currentLongitude)
+  ) {
+    throw new Error("A valid location is required.");
+  }
+
+  const caches = await getCaches();
+
+  const existingTrainingCache = caches.find(
+    (cache) => cache.CacheIsTraining === true
+  );
+
+  const nextCacheID =
+    caches.reduce(
+      (largestID, cache) =>
+        Math.max(largestID, Number(cache.CacheID)),
+      0
+    ) + 1;
+
+  const trainingCache = {
+    CacheID:
+      existingTrainingCache?.CacheID ?? nextCacheID,
+    CacheName: "Nearby Training Cache",
+    CacheDescription:
+      "A practice cache generated close to your current GPS position.",
+    CacheEventID: 1,
+    CacheImageURL: "",
+    CacheClue:
+      "Look nearby. This training cache is only a short distance from where it was created.",
+    CachePoints: 50,
+    CacheLatitude:
+      currentLatitude + TRAINING_CACHE_LATITUDE_OFFSET,
+    CacheLongitude: currentLongitude,
+    CacheIsTraining: true,
+  };
+
+  const updatedCaches = existingTrainingCache
+    ? caches.map((cache) =>
+        cache.CacheID === existingTrainingCache.CacheID
+          ? trainingCache
+          : cache
+      )
+    : [...caches, trainingCache];
+
+  await writeJSON(STORAGE_KEYS.caches, updatedCaches);
+
+  return trainingCache;
 }
