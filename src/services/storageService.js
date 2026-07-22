@@ -173,7 +173,10 @@ export async function saveTrainingCache(
     throw new Error("A valid location is required.");
   }
 
-  const caches = await getCaches();
+  const [caches, finds] = await Promise.all([
+    getCaches(),
+    getFinds(),
+  ]);
 
   const existingTrainingCache = caches.find(
     (cache) => cache.CacheIsTraining === true
@@ -211,7 +214,18 @@ export async function saveTrainingCache(
       )
     : [...caches, trainingCache];
 
-  await writeJSON(STORAGE_KEYS.caches, updatedCaches);
+  // Remove only the previous discovery for the training cache.
+  // Normal cache discoveries remain saved.
+  const updatedFinds = finds.filter(
+    (find) =>
+      Number(find.FindCacheID) !==
+      Number(trainingCache.CacheID)
+  );
+
+  await Promise.all([
+    writeJSON(STORAGE_KEYS.caches, updatedCaches),
+    writeJSON(STORAGE_KEYS.finds, updatedFinds),
+  ]);
 
   return trainingCache;
 }
