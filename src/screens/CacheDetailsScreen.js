@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,7 +22,10 @@ import {
 const UNLOCK_DISTANCE_METRES = 50;
 const MAXIMUM_ACCEPTABLE_ACCURACY = 100;
 
-export default function CacheDetailsScreen({ route, navigation }) {
+export default function CacheDetailsScreen({
+  route,
+  navigation,
+}) {
   const cacheID = Number(route.params?.cacheID);
 
   const { caches, userFinds, loading } = useGeoQuest();
@@ -29,7 +35,9 @@ export default function CacheDetailsScreen({ route, navigation }) {
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState("");
 
-  const cache = caches.find((item) => item.CacheID === cacheID);
+  const cache = caches.find(
+    (item) => item.CacheID === cacheID
+  );
 
   const existingFind = userFinds.find(
     (find) => find.FindCacheID === cacheID
@@ -51,6 +59,7 @@ export default function CacheDetailsScreen({ route, navigation }) {
         setLocationError(
           "Location permission is required to unlock this cache."
         );
+
         return;
       }
 
@@ -87,6 +96,7 @@ export default function CacheDetailsScreen({ route, navigation }) {
         );
     } catch (error) {
       console.error(error);
+
       setLocationError(
         "GeoQuest could not retrieve your current location."
       );
@@ -106,8 +116,14 @@ export default function CacheDetailsScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.centredScreen}>
-        <ActivityIndicator size="large" color="#236B4E" />
-        <Text style={styles.loadingText}>Loading cache...</Text>
+        <ActivityIndicator
+          size="large"
+          color="#236B4E"
+        />
+
+        <Text style={styles.loadingText}>
+          Loading cache...
+        </Text>
       </View>
     );
   }
@@ -115,7 +131,10 @@ export default function CacheDetailsScreen({ route, navigation }) {
   if (!cache) {
     return (
       <View style={styles.centredScreen}>
-        <Text style={styles.errorTitle}>Cache not found</Text>
+        <Text style={styles.errorTitle}>
+          Cache not found
+        </Text>
+
         <Text style={styles.errorMessage}>
           This cache is no longer available.
         </Text>
@@ -143,6 +162,47 @@ export default function CacheDetailsScreen({ route, navigation }) {
     distance !== null &&
     distance <= UNLOCK_DISTANCE_METRES &&
     hasAcceptableAccuracy;
+
+  async function openWalkingDirections() {
+    const destination =
+      `${cache.CacheLatitude},${cache.CacheLongitude}`;
+
+    const directionsURL = Platform.select({
+      ios:
+        `https://maps.apple.com/?daddr=${destination}` +
+        "&dirflg=w",
+
+      android:
+        "https://www.google.com/maps/dir/?api=1" +
+        `&destination=${destination}` +
+        "&travelmode=walking",
+
+      default:
+        "https://www.google.com/maps/dir/?api=1" +
+        `&destination=${destination}` +
+        "&travelmode=walking",
+    });
+
+    try {
+      const canOpenDirections =
+        await Linking.canOpenURL(directionsURL);
+
+      if (!canOpenDirections) {
+        throw new Error(
+          "No maps application is available."
+        );
+      }
+
+      await Linking.openURL(directionsURL);
+    } catch (error) {
+      console.error(error);
+
+      Alert.alert(
+        "Directions unavailable",
+        "GeoQuest could not open walking directions on this device."
+      );
+    }
+  }
 
   function continueToLogFind() {
     navigation.navigate("LogFind", {
@@ -191,25 +251,41 @@ export default function CacheDetailsScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["left", "right", "bottom"]}>
+    <SafeAreaView
+      style={styles.screen}
+      edges={["left", "right", "bottom"]}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headingRow}>
           <View style={styles.headingText}>
-            <Text style={styles.cacheName}>{cache.CacheName}</Text>
+            <Text style={styles.cacheName}>
+              {cache.CacheName}
+            </Text>
+
             <Text style={styles.cacheDescription}>
               {cache.CacheDescription}
             </Text>
           </View>
 
           <View style={styles.pointsBadge}>
-            <Text style={styles.pointsNumber}>{cache.CachePoints}</Text>
-            <Text style={styles.pointsLabel}>points</Text>
+            <Text style={styles.pointsNumber}>
+              {cache.CachePoints}
+            </Text>
+
+            <Text style={styles.pointsLabel}>
+              points
+            </Text>
           </View>
         </View>
 
         <View style={styles.clueCard}>
-          <Text style={styles.sectionLabel}>CLUE</Text>
-          <Text style={styles.clueText}>{cache.CacheClue}</Text>
+          <Text style={styles.sectionLabel}>
+            CLUE
+          </Text>
+
+          <Text style={styles.clueText}>
+            {cache.CacheClue}
+          </Text>
         </View>
 
         <View
@@ -222,8 +298,13 @@ export default function CacheDetailsScreen({ route, navigation }) {
                 : styles.lockedCard,
           ]}
         >
-          <Text style={styles.statusTitle}>{getStatusTitle()}</Text>
-          <Text style={styles.statusMessage}>{getStatusMessage()}</Text>
+          <Text style={styles.statusTitle}>
+            {getStatusTitle()}
+          </Text>
+
+          <Text style={styles.statusMessage}>
+            {getStatusMessage()}
+          </Text>
 
           {location && (
             <>
@@ -231,11 +312,13 @@ export default function CacheDetailsScreen({ route, navigation }) {
                 {formatDistance(distance)}
               </Text>
 
-              {accuracy !== null && accuracy !== undefined && (
-                <Text style={styles.accuracyText}>
-                  GPS accuracy: approximately {Math.round(accuracy)} metres
-                </Text>
-              )}
+              {accuracy !== null &&
+                accuracy !== undefined && (
+                  <Text style={styles.accuracyText}>
+                    GPS accuracy: approximately{" "}
+                    {Math.round(accuracy)} metres
+                  </Text>
+                )}
             </>
           )}
 
@@ -258,10 +341,23 @@ export default function CacheDetailsScreen({ route, navigation }) {
               onPress={startLocationTracking}
               accessibilityRole="button"
             >
-              <Text style={styles.retryButtonText}>Try again</Text>
+              <Text style={styles.retryButtonText}>
+                Try again
+              </Text>
             </Pressable>
           </View>
         )}
+
+        <Pressable
+          style={styles.directionsButton}
+          onPress={openWalkingDirections}
+          accessibilityRole="button"
+          accessibilityLabel={`Open walking directions to ${cache.CacheName}`}
+        >
+          <Text style={styles.directionsButtonText}>
+            Open walking directions
+          </Text>
+        </Pressable>
 
         <Pressable
           style={[
@@ -270,7 +366,9 @@ export default function CacheDetailsScreen({ route, navigation }) {
               styles.disabledActionButton,
           ]}
           onPress={continueToLogFind}
-          disabled={!cacheIsUnlocked || Boolean(existingFind)}
+          disabled={
+            !cacheIsUnlocked || Boolean(existingFind)
+          }
           accessibilityRole="button"
         >
           <Text style={styles.actionButtonText}>
@@ -283,8 +381,9 @@ export default function CacheDetailsScreen({ route, navigation }) {
         </Pressable>
 
         <Text style={styles.proximityNote}>
-          GeoQuest continuously checks your foreground GPS position. The
-          cache unlocks at {UNLOCK_DISTANCE_METRES} metres or closer.
+          GeoQuest continuously checks your foreground GPS
+          position. The cache unlocks at{" "}
+          {UNLOCK_DISTANCE_METRES} metres or closer.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -449,12 +548,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+  directionsButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#236B4E",
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 20,
+  },
+  directionsButtonText: {
+    color: "#236B4E",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   actionButton: {
     alignItems: "center",
     backgroundColor: "#236B4E",
     borderRadius: 14,
     padding: 17,
-    marginTop: 20,
+    marginTop: 12,
   },
   disabledActionButton: {
     backgroundColor: "#9AA3A0",
